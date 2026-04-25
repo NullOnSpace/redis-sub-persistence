@@ -50,6 +50,9 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
+      - name: Install redis-cli
+        run: sudo apt-get update && sudo apt-get install -y redis-tools
+
       - name: Build binary for integration tests
         run: cargo build
 
