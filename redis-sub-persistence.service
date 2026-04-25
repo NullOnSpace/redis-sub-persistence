@@ -1,0 +1,12 @@
+[Unit]
+Description=Redis Sub Persistence Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/redis-sub-persistence --config /etc/redis-sub-persistence/config.toml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

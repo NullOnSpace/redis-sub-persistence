@@ -1,0 +1,14 @@
+[redis]
+host = "127.0.0.1"
+port = 6379
+db = 0
+password = ""
+channel = ["test-channel", "test-channel2"]
+
+[persistence]
+type = "file"
+file = "./data/messages.log"
+
+[log]
+level = "info"
+file = "./logs/app.log"

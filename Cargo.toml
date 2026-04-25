@@ -1,0 +1,25 @@
+[package]
+name = "redis-sub-persistence"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+redis = { version = "1.2", features = ["aio", "tokio-comp"] }
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "registry"] }
+tracing-appender = "0.2"
+tokio = { version = "1", features = ["full"] }
+chrono = "0.4"
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+
+[dev-dependencies]
+tempfile = "3"
+regex = "1"
+serial_test = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
