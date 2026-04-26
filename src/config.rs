@@ -1,13 +1,33 @@
 use serde::Deserialize;
+use std::fmt;
 
-#[derive(Debug, Deserialize, PartialEq)]
+use crate::error::AppError;
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct AppConfig {
     pub redis: RedisConfig,
     pub persistence: PersistenceConfig,
     pub log: LogConfig,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub enum PersistenceType {
+    #[serde(rename = "file")]
+    File,
+    #[serde(rename = "db")]
+    Db,
+}
+
+impl fmt::Display for PersistenceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PersistenceType::File => write!(f, "file"),
+            PersistenceType::Db => write!(f, "db"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct RedisConfig {
     pub host: String,
     #[serde(default = "default_redis_port")]
@@ -23,10 +43,10 @@ fn default_redis_port() -> u16 {
     6379
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct PersistenceConfig {
     #[serde(default = "default_persistence_type", rename = "type")]
-    pub persistence_type: String,
+    pub persistence_type: PersistenceType,
     pub file: Option<String>,
     pub db_host: Option<String>,
     #[serde(default = "default_db_port")]
@@ -39,8 +59,8 @@ pub struct PersistenceConfig {
     pub db_retries: u32,
 }
 
-fn default_persistence_type() -> String {
-    "file".to_string()
+fn default_persistence_type() -> PersistenceType {
+    PersistenceType::File
 }
 
 fn default_db_port() -> u16 {
@@ -55,7 +75,7 @@ fn default_db_retries() -> u32 {
     3
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct LogConfig {
     #[serde(default = "default_log_level")]
     pub level: String,
@@ -67,17 +87,17 @@ fn default_log_level() -> String {
 }
 
 impl AppConfig {
-    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let content = std::fs::read_to_string(path)?;
+    pub fn load(path: &str) -> Result<Self, AppError> {
+        let content = std::fs::read_to_string(path).map_err(AppError::ConfigFileRead)?;
         content.parse()
     }
 }
 
 impl std::str::FromStr for AppConfig {
-    type Err = Box<dyn std::error::Error>;
+    type Err = AppError;
 
     fn from_str(content: &str) -> Result<Self, Self::Err> {
-        let config: AppConfig = toml::from_str(content)?;
+        let config: AppConfig = toml::from_str(content).map_err(AppError::ConfigParse)?;
         Ok(config)
     }
 }
@@ -119,7 +139,7 @@ file = "./logs/test.log"
         assert_eq!(
             config.persistence,
             PersistenceConfig {
-                persistence_type: "file".to_string(),
+                persistence_type: PersistenceType::File,
                 file: Some("./data/test.log".to_string()),
                 db_host: None,
                 db_port: 3306,
@@ -153,7 +173,7 @@ channel = ["test"]
         assert_eq!(config.redis.port, 6379);
         assert_eq!(config.redis.db, 0);
         assert_eq!(config.redis.password, "");
-        assert_eq!(config.persistence.persistence_type, "file");
+        assert_eq!(config.persistence.persistence_type, PersistenceType::File);
         assert_eq!(config.persistence.file, None);
         assert_eq!(config.persistence.db_port, 3306);
         assert_eq!(config.persistence.db_timeout, 30);
@@ -173,7 +193,7 @@ channel = ["test"]
 [log]
 "#;
         let result = AppConfig::from_str(content);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(AppError::ConfigParse(_))));
     }
 
     #[test]
@@ -187,14 +207,14 @@ host = "127.0.0.1"
 [log]
 "#;
         let result = AppConfig::from_str(content);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(AppError::ConfigParse(_))));
     }
 
     #[test]
     fn parse_invalid_toml() {
         let content = "this is not valid toml {{{}}}";
         let result = AppConfig::from_str(content);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(AppError::ConfigParse(_))));
     }
 
     #[test]
@@ -217,7 +237,7 @@ db_retries = 5
 level = "warn"
 "#;
         let config = AppConfig::from_str(content).unwrap();
-        assert_eq!(config.persistence.persistence_type, "db");
+        assert_eq!(config.persistence.persistence_type, PersistenceType::Db);
         assert_eq!(
             config.persistence.db_host,
             Some("db.example.com".to_string())
@@ -232,7 +252,7 @@ level = "warn"
     #[test]
     fn load_from_file_not_found() {
         let result = AppConfig::load("/nonexistent/path/config.toml");
-        assert!(result.is_err());
+        assert!(matches!(result, Err(AppError::ConfigFileRead(_))));
     }
 
     #[test]

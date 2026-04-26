@@ -1,5 +1,6 @@
-use super::Persistence;
 use tracing::{error, info};
+
+use crate::error::AppError;
 
 #[allow(dead_code)]
 pub struct DbConfig {
@@ -17,17 +18,15 @@ pub struct DatabasePersistence {
 }
 
 impl DatabasePersistence {
-    pub fn new(config: DbConfig) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(config: DbConfig) -> Result<Self, AppError> {
         info!(
             "database persistence configured: {}:{}/{}",
             config.host, config.port, config.db
         );
         Ok(Self { config })
     }
-}
 
-impl Persistence for DatabasePersistence {
-    fn save(&self, channel: &str, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn save(&self, channel: &str, message: &str) -> Result<(), AppError> {
         error!(
             "database persistence is not yet implemented, message from channel {} will be logged only",
             channel
