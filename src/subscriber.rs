@@ -56,7 +56,10 @@ async fn connect_with_retry(config: &RedisConfig) -> Result<redis::aio::PubSub, 
                     return Err(AppError::RedisConnection(e));
                 }
                 let delay = base_delay * 2u32.pow(retry_count as u32 - 1);
-                warn!("redis connection failed (attempt {}), retrying in {:?}: {}", retry_count, delay, e);
+                warn!(
+                    "redis connection failed (attempt {}), retrying in {:?}: {}",
+                    retry_count, delay, e
+                );
                 sleep(delay).await;
             }
         }
@@ -72,7 +75,10 @@ pub async fn run_subscriber(
 
     for channel in &config.channel {
         info!("subscribing to channel: {}", channel);
-        pubsub.subscribe(channel).await.map_err(AppError::RedisSubscribe)?;
+        pubsub
+            .subscribe(channel)
+            .await
+            .map_err(AppError::RedisSubscribe)?;
     }
 
     info!(
@@ -103,7 +109,7 @@ pub async fn run_subscriber(
                             return Err(AppError::RedisMaxReconnects { max: max_reconnects });
                         }
                         warn!("pubsub connection closed, reconnecting (attempt {})...", reconnect_count);
-                        let delay = Duration::from_secs(2u64.pow(reconnect_count.min(6) as u32));
+                        let delay = Duration::from_secs(2u64.pow(reconnect_count.min(6)));
                         sleep(delay).await;
                         drop(msg_stream);
                         pubsub = connect_with_retry(config).await?;

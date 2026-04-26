@@ -39,7 +39,9 @@ pub fn create_persistence(config: &PersistenceConfig) -> Result<Persistence, App
                 timeout: config.db_timeout,
                 retries: config.db_retries,
             };
-            Ok(Persistence::Db(database::DatabasePersistence::new(db_config)?))
+            Ok(Persistence::Db(database::DatabasePersistence::new(
+                db_config,
+            )?))
         }
     }
 }

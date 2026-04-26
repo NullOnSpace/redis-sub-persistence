@@ -5,7 +5,9 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 pub fn init(config: &LogConfig) -> Result<(), AppError> {
     let filter = EnvFilter::try_new(&config.level)
         .or_else(|_| EnvFilter::try_new("info"))
-        .map_err(|_| AppError::LogLevelInvalid { level: config.level.clone() })?;
+        .map_err(|_| AppError::LogLevelInvalid {
+            level: config.level.clone(),
+        })?;
 
     if let Some(log_file) = &config.file {
         let path = std::path::Path::new(log_file);

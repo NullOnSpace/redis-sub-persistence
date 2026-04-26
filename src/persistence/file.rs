@@ -38,8 +38,12 @@ impl FilePersistence {
         tokio::task::spawn_blocking(move || {
             let mut writer = writer.lock().map_err(AppError::file_lock_poisoned)?;
             let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
-            write!(writer, "[{}] channel={} message={}\n", timestamp, channel, message)
-                .map_err(AppError::PersistWrite)?;
+            writeln!(
+                writer,
+                "[{}] channel={} message={}",
+                timestamp, channel, message
+            )
+            .map_err(AppError::PersistWrite)?;
             writer.flush().map_err(AppError::PersistFlush)?;
             Ok(())
         })
@@ -76,7 +80,10 @@ mod tests {
         let file_path = tmp_dir.path().join("messages.log");
         let persistence = FilePersistence::new(file_path.to_str().unwrap()).unwrap();
 
-        persistence.save("test-channel", "hello world").await.unwrap();
+        persistence
+            .save("test-channel", "hello world")
+            .await
+            .unwrap();
 
         let content = fs::read_to_string(&file_path).unwrap();
         assert!(content.contains("channel=test-channel"));
